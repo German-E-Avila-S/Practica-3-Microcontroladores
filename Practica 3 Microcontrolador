@@ -1,0 +1,45 @@
+LIST p=16F877
+    INCLUDE <P16F877.INC> 
+
+    __CONFIG _WDT_OFF & _PWRTE_OFF & _XT_OSC & _LVP_OFF & _CP_OFF
+
+    ORG 0x00          ; Inicio del programa
+    GOTO Inicio       ; Saltar a la rutina principal
+
+; === Definición de Variables ===
+VALOR_IN  EQU  0x20  ; Registro temporal para el valor del DIP switch
+VALOR_OUT EQU  0x21  ; Registro temporal para el valor de salida
+
+; === Configuración de Puertos ===
+    ORG 0x05
+Inicio
+    BCF STATUS, RP0   ; Cambiar a Banco 0
+    BCF STATUS, RP1
+    CLRF PORTB
+    CLRF PORTD
+
+    BSF STATUS, RP0   ; Cambiar a Banco 1
+    CLRF TRISB        ; Configurar PORTB como salida (LEDs)
+    MOVLW 0xFF
+    MOVWF TRISD       ; Configurar PORTD como entrada (DIP switch)
+    BCF STATUS, RP0   ; Regresar a Banco 0
+
+; === Bucle Principal ===
+Loop
+    MOVF PORTD, W     ; Leer el valor del DIP switch
+    MOVWF VALOR_IN    ; Guardar en VALOR_IN
+    MOVF VALOR_IN, W  ; Mover el valor a W para operación
+    ADDLW 0x01        ; Sumar 1
+    MOVWF VALOR_OUT   ; Guardar resultado en VALOR_OUT
+
+    MOVF VALOR_OUT, W ; Mover el valor de salida a W para comparación
+    SUBLW 0xFF        ; Restar 255 (0xFF) de WREG
+    BTFSC STATUS, Z   ; Si el resultado es 0, significa que el valor era 255
+    CLRF PORTB        ; Apagar LEDs si el resultado es 255
+    BTFSS STATUS, Z   ; Si no es 255, saltar
+    MOVF VALOR_OUT, W ; Mover el valor a W para mostrarlo en LEDs
+
+    MOVWF PORTB       ; Enviar el valor incrementado a los LEDs
+    GOTO Loop         ; Volver a leer el puerto
+
+    END
